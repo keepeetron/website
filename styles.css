@@ -72,15 +72,28 @@ p {
     margin: 0 auto;
 }
 
-/* Color Square */
+/* Mouse Circle Container */
 .color-square {
     width: 200px;
     height: 200px;
     background-color: #3498db;
     margin: 2rem auto;
-    transition: background-color 0.3s ease;
+    position: relative;
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* Mouse Circle */
+.mouse-circle {
+    width: 32px;
+    height: 32px;
+    background-color: #e74c3c;
+    border-radius: 50%;
+    position: absolute;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s ease;
 }
 
 /* Footer */
