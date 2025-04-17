@@ -72,28 +72,11 @@ p {
     margin: 0 auto;
 }
 
-/* Mouse Circle Container */
-.color-square {
-    width: 200px;
-    height: 200px;
+/* Game Canvas */
+#gameCanvas {
     background-color: #3498db;
-    margin: 2rem auto;
-    position: relative;
     border-radius: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-}
-
-/* Mouse Circle */
-.mouse-circle {
-    width: 32px;
-    height: 32px;
-    background-color: #e74c3c;
-    border-radius: 50%;
-    position: absolute;
-    pointer-events: none;
-    transform: translate(-50%, -50%);
-    transition: transform 0.1s ease;
 }
 
 /* Footer */
@@ -108,7 +91,7 @@ footer {
 }
 
 /* Responsive design */
-@media (max-width: 768px) {
+@media (max-width: 800px) {
     nav ul {
         flex-direction: column;
         align-items: center;
@@ -123,8 +106,8 @@ footer {
         font-size: 1.5rem;
     }
 
-    .color-square {
-        width: 150px;
-        height: 150px;
+    #gameCanvas {
+        width: 100%;
+        max-width: 768px;
     }
 } 
