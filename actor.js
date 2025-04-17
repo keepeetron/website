@@ -6,39 +6,26 @@ export class Actor {
         this.vel = new Vector(0, 0);
         this.radius = radius;
         this.color = color;
-        
-        // For interpolation
-        this.prevPos = this.pos.copy();
-        this.nextPos = this.pos.copy();
     }
 
     fixedUpdate(deltaTime) {
-        // Store previous position for interpolation
-        this.prevPos = this.pos.copy();
-        
         // Update position (deltaTime is now in seconds)
         this.pos = this.pos.add(this.vel.mult(deltaTime));
-        
-        // Store next position for interpolation
-        this.nextPos = this.pos.copy();
     }
 
     draw(ctx, alpha) {
-        // Interpolate position for smooth rendering
-        const interpPos = this.prevPos.mult(1 - alpha).add(this.nextPos.mult(alpha));
-        
         // Calculate velocity magnitude for stretch amount
         const velMag = this.vel.mag();
-        const stretchFactor = 1.0 + velMag * 0.005;
+        const stretchFactor = 1.0 + velMag / 1400;
         
         // Calculate angle from velocity
         const angle = Math.atan2(this.vel.y, this.vel.x);
-        
+
         // Save current context state
         ctx.save();
         
         // Move to position and rotate
-        ctx.translate(interpPos.x, interpPos.y);
+        ctx.translate(this.pos.x, this.pos.y);
         ctx.rotate(angle);
         
         // Draw stretched circle

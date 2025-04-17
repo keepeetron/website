@@ -9,11 +9,12 @@ body {
     font-family: 'Arial', sans-serif;
     line-height: 1.6;
     color: #333;
+    background-color: hsl(0, 0%, 10%);
 }
 
 /* Header and Navigation */
 header {
-    background-color: #2c3e50;
+    background-color: #1a1a1a;
     padding: 1rem 0;
     position: fixed;
     width: 100%;
@@ -36,7 +37,7 @@ nav a {
 }
 
 nav a:hover {
-    color: #3498db;
+    color: #9c9c9c;
 }
 
 /* Main content */
@@ -58,13 +59,13 @@ section {
 h1 {
     font-size: 2.5rem;
     margin-bottom: 1rem;
-    color: #2c3e50;
+    color: #383838;
 }
 
 h2 {
     font-size: 2rem;
     margin-bottom: 1rem;
-    color: #2c3e50;
+    color: #383838;
 }
 
 p {
@@ -74,9 +75,8 @@ p {
 
 /* Game Canvas */
 #gameCanvas {
-    background-color: #3498db;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 0;
+    box-shadow: none;
 }
 
 /* Footer */
