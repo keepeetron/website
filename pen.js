@@ -2,6 +2,8 @@ import { Vector } from './vector.js';
 import { Dog } from './dog.js';
 
 export class Pen {
+    static thickness = 8;
+
     constructor(x, y, radius) {
         this.pos = new Vector(x, y);
         this.radius = radius;
@@ -13,7 +15,7 @@ export class Pen {
         ctx.beginPath();
         ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
         ctx.strokeStyle = this.color;
-        ctx.lineWidth = 8;
+        ctx.lineWidth = Pen.thickness;
         ctx.stroke();
     }
 

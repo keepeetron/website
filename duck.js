@@ -3,12 +3,24 @@ import { Vector } from './vector.js';
 import { Dog } from './dog.js';
 
 export class Duck extends Actor {
+    static ducks = [];
+
     constructor(x, y) {
-        super(x, y, 12, '#f1c40f'); // Yellow color, 12px radius
+        super(x, y, 12, '#f1c40f'); // Default to yellow, but color will be changed later
         this.active = true;
         this.isSorted = true;
         this.closestOtherDuck = null;
         this.avgPosOfNearbyGroup = new Vector(0, 0);
+        
+        // Customize head properties for duck
+        this.headSize = new Vector(this.radius * 1.0, this.radius * 0.5);
+        this.headOffset = this.radius * 0.8;
+        
+        // Set beak properties - square and as wide as head
+        this.mouthSize = new Vector(this.headSize.y, this.headSize.y);
+        this.mouthColor = '#ffffff';
+        
+        Duck.ducks.push(this);
     }
 
     getClosestOtherDuck(game) {
@@ -57,15 +69,18 @@ export class Duck extends Actor {
     fixedUpdate(dt, game) {
         if (!this.active) return;
 
-        const centerForce = 1.6;
+        const centerForce = 1.4;
         const damping = 5.0;
-        const separationForce = 100.0;
-        const groupForce = 4.0;
-        const dogForce = 350.0;
+        const separationForce = 5000.0;
+        const groupForce = 2.5;
+        const dogForce = 20000.0;
+
+        // Initialize total force
+        let totalForce = new Vector(0, 0);
 
         // Center force (pull towards origin, matching Godot's -pos)
         const center = new Vector(game.canvas.width / 2, game.canvas.height / 2);
-        this.vel = this.vel.add(center.sub(this.pos).mult(centerForce * dt));
+        totalForce = totalForce.add(center.sub(this.pos).mult(centerForce));
 
         // Separation from closest duck
         const closestDuck = this.getClosestOtherDuck(game);
@@ -74,7 +89,7 @@ export class Duck extends Actor {
         if (closestDuck) {
             const proximity = 1.0 / (this.distanceTo(closestDuck) + 1.0);
             const separationDir = this.directionTo(closestDuck);
-            this.vel = this.vel.add(separationDir.mult(-separationForce * proximity));
+            totalForce = totalForce.add(separationDir.mult(-separationForce * proximity));
         }
 
         // Group cohesion with nearby ducks
@@ -89,30 +104,58 @@ export class Duck extends Actor {
 
         const avgPos = this.getAvgPos(closestNDucks);
         this.avgPosOfNearbyGroup = avgPos;
-        this.vel = this.vel.add(avgPos.sub(this.pos).mult(groupForce * dt));
+        totalForce = totalForce.add(avgPos.sub(this.pos).mult(groupForce));
 
         // Avoid dogs
         for (const dog of Dog.dogs) {
             const dogProximity = 1.0 / (this.distanceTo(dog) / 7.0 + 1.0);
             const avoidDir = this.directionTo(dog);
-            this.vel = this.vel.add(avoidDir.mult(-dogForce * dogProximity));
+            totalForce = totalForce.add(avoidDir.mult(-dogForce * dogProximity));
         }
 
-        // Apply damping
-        this.vel = this.vel.sub(this.vel.mult(damping * dt));
+        // Apply damping and total force together
+        const dampingForce = this.vel.mult(damping);
+        totalForce = totalForce.sub(dampingForce);
+        
+        // Apply accumulated force to velocity
+        this.vel = this.vel.add(totalForce.mult(dt));
+        
+        // Let Actor handle position update and default angle targets
         super.fixedUpdate(dt);
+        
+        // For ducks, both body and head face velocity direction
+        const velAngle = Math.atan2(this.vel.y, this.vel.x);
+        this.targetBodyAngle = velAngle;
+        this.targetHeadAngle = velAngle;
+    }
+
+    update(deltaTime) {
+        if (!this.active) return;
+        
+        // Let Actor handle visual interpolation
+        super.update(deltaTime);
     }
 
     draw(ctx, alpha) {
+        // Draw the base actor (body and head)
         super.draw(ctx, alpha);
         
-        // Draw a simple beak
-        ctx.beginPath();
-        ctx.moveTo(this.pos.x + 8, this.pos.y);
-        ctx.lineTo(this.pos.x + 12, this.pos.y - 4);
-        ctx.lineTo(this.pos.x + 12, this.pos.y + 4);
-        ctx.closePath();
-        ctx.fillStyle = '#e67e22';
-        ctx.fill();
+        // Save context for beak drawing
+        ctx.save();
+        
+        // Move to actor position
+        ctx.translate(this.pos.x, this.pos.y);
+        
+        // Calculate body angle from velocity
+        const bodyAngle = Math.atan2(this.vel.y, this.vel.x);
+        ctx.rotate(bodyAngle);
+        
+        // Move to head position
+        ctx.translate(this.headOffset, 0);
+        
+        // Apply head rotation relative to body
+        ctx.rotate(this.headAngle - bodyAngle);
+        
+        ctx.restore();
     }
 } 

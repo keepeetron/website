@@ -71,4 +71,14 @@ export class Vector {
     static angle(v1, v2) {
         return Math.acos(Vector.dot(v1, v2) / (v1.mag() * v2.mag()));
     }
+
+    // Rotate vector by angle (in radians)
+    rotate(angle) {
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        return new Vector(
+            this.x * cos - this.y * sin,
+            this.x * sin + this.y * cos
+        );
+    }
 } 

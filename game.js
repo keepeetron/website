@@ -9,7 +9,8 @@ import { Boundary } from './boundary.js';
 const GameState = {
     PREGAME: 'PREGAME',
     PLAYING: 'PLAYING',
-    GAMEOVER: 'GAMEOVER'
+    GAMEOVER: 'GAMEOVER',
+    REPLAY: 'REPLAY'
 };
 
 // HTML template for seed input
@@ -38,6 +39,28 @@ const seedInputHTML = `
                        border: 2px solid white; 
                        padding: 8px 16px; 
                        cursor: pointer;">Daily Seed</button>
+        </div>
+    </div>
+`;
+
+const resetButtonHTML = `
+    <div id="resetButton" style="position: absolute; top: 70%; left: 50%; transform: translate(-50%, -50%); display: none;">
+        <div style="display: flex; gap: 10px; flex-direction: column; align-items: center;">
+            <button id="resetBtn" 
+                style="background: hsl(0, 0%, 20%); 
+                       color: white; 
+                       border: 2px solid white; 
+                       padding: 12px 24px; 
+                       font-size: 20px;
+                       cursor: pointer;">Reset</button>
+            <button id="replayBtn" 
+                style="background: hsl(0, 0%, 20%); 
+                       color: white; 
+                       border: 2px solid white; 
+                       padding: 12px 24px; 
+                       font-size: 20px;
+                       cursor: pointer;
+                       display: none;">Watch Replay</button>
         </div>
     </div>
 `;
@@ -87,23 +110,39 @@ class Game {
         // Game state
         this.state = GameState.PREGAME;
         this.seed = '';
-        this.currentSeed = ''; // Cache the current seed value
+        this.currentSeed = '';
         this.rng = null;
         
-        // Add seed input UI
+        // Replay system
+        this.MAX_RECORDED_FRAMES = 18000; // 5 minutes at 60fps
+        this.recordedPositions = new Int16Array(this.MAX_RECORDED_FRAMES * 2); // x,y pairs
+        this.recordedFrames = 0;  // Current number of recorded frames
+        this.replayFrame = 0;     // Current frame in replay
+        this.replayData = null;   // Stored replay data {seed: string, positions: Int16Array, initialDogState: Object}
+        this.replayPaused = false;// Simple pause state instead of variable speed
+        
+        // Timer
+        this.gameTime = 0;
+        this.finalTime = 0;
+        
+        // Add UI elements
         document.body.insertAdjacentHTML('beforeend', seedInputHTML);
+        document.body.insertAdjacentHTML('beforeend', resetButtonHTML);
         this.setupSeedControls();
         this.setupKeyboardControls();
+        this.setupResetButton();
         
         // Fixed update settings
-        this.fixedTimeStep = 1 / 60; // 60 updates per second (in seconds)
+        this.fixedTimeStep = 1 / 120; // 60 updates per second (in seconds)
         this.accumulator = 0;
         this.lastTime = performance.now() / 1000; // Convert to seconds
         
         // FPS tracking
         this.fixedUpdatesThisSecond = 0;
+        this.updatesThisSecond = 0;  // Add counter for regular updates
         this.lastFpsUpdate = this.lastTime;
-        this.currentFps = 0;
+        this.currentFixedFps = 0;    // Rename to be more specific
+        this.currentFps = 0;         // Add FPS counter for regular updates
         
         // Mouse position
         this.mousePos = new Vector(0, 0);
@@ -139,11 +178,21 @@ class Game {
         document.addEventListener('mousemove', (e) => {
             const rect = this.canvas.getBoundingClientRect();
             
-            // Calculate mouse position relative to canvas, even when outside
-            let mouseX = e.clientX - rect.left;
-            let mouseY = e.clientY - rect.top;
+            // Calculate scale ratio between CSS size and actual canvas size
+            const scaleX = this.canvas.width / rect.width;
+            const scaleY = this.canvas.height / rect.height;
             
+            // Calculate mouse position relative to canvas and apply scaling
+            let mouseX = Math.round((e.clientX - rect.left) * scaleX);
+            let mouseY = Math.round((e.clientY - rect.top) * scaleY);
+            
+            // Update mouse position
             this.mousePos = new Vector(mouseX, mouseY);
+            
+            // Update dog's target position only in PREGAME and PLAYING states
+            if (this.dog && (this.state === GameState.PREGAME || this.state === GameState.PLAYING)) {
+                this.dog.target_pos = new Vector(mouseX, mouseY);
+            }
         });
     }
 
@@ -180,6 +229,33 @@ class Game {
             if (e.key === 'Escape' || e.key.toLowerCase() === 'r') {
                 this.resetGame();
             }
+            // Debug: F key to trigger game over
+            if (e.key.toLowerCase() === 'f' && this.state === GameState.PLAYING) {
+                this.finalTime = this.gameTime;
+                this.endGame();
+            }
+            
+            // Replay controls
+            if (this.state === GameState.GAMEOVER && e.key.toLowerCase() === 'p') {
+                this.startReplay();
+            }
+            if (this.state === GameState.REPLAY && e.key === ' ') {
+                this.replayPaused = !this.replayPaused;
+            }
+        });
+    }
+
+    setupResetButton() {
+        const resetButton = document.getElementById('resetButton');
+        const resetBtn = document.getElementById('resetBtn');
+        const replayBtn = document.getElementById('replayBtn');
+        
+        resetBtn.addEventListener('click', () => {
+            this.resetGame();
+        });
+        
+        replayBtn.addEventListener('click', () => {
+            this.startReplay();
         });
     }
 
@@ -196,27 +272,62 @@ class Game {
         this.rng = mulberry32(hashCode(this.currentSeed));
     }
 
+    getFreeDuckSpawnPosition(centerX, centerY, spawnRadius, duckRadius) {
+        const minDistance = duckRadius * 2; // Minimum distance between ducks
+        const maxAttempts = 100;
+        
+        for (let attempts = 0; attempts < maxAttempts; attempts++) {
+            // Use seeded RNG for position
+            const angle = this.rng() * Math.PI * 2;
+            const radius = Math.sqrt(this.rng()) * spawnRadius;
+            const x = centerX + radius * Math.cos(angle);
+            const y = centerY + radius * Math.sin(angle);
+
+            // Check if this position overlaps with any existing ducks
+            let overlaps = false;
+            for (const duck of Duck.ducks) {
+                const dx = x - duck.pos.x;
+                const dy = y - duck.pos.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < minDistance) {
+                    overlaps = true;
+                    break;
+                }
+            }
+
+            if (!overlaps) {
+                return { x, y };
+            }
+        }
+
+        // If we couldn't find a free spot after max attempts, return one last random position
+        const angle = this.rng() * Math.PI * 2;
+        const radius = Math.sqrt(this.rng()) * spawnRadius;
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+        return { x, y };
+    }
+
     regenerateDucks() {
         // Remove existing ducks
         this.objects = this.objects.filter(obj => !(obj instanceof Duck));
+        Duck.ducks = []; // Clear static ducks array
         
         const centerX = this.canvas.width / 2;
         const centerY = this.canvas.height / 2;
-        const spawnRadius = 128; // Same as pen radius
+        const penRadius = 128;
+        const duckRadius = 12; // Duck's radius from Duck class
+        // Subtract pen line thickness (half on each side) and duck radius from spawn area
+        const spawnRadius = penRadius - (Pen.thickness / 2) - duckRadius;
 
         // Create ducks with specific colors (4 each of cyan, magenta, and yellow)
         const colors = ['#00ffff', '#ff00ff', '#ffff00']; // cyan, magenta, yellow
         
         for (let colorIndex = 0; colorIndex < colors.length; colorIndex++) {
             for (let i = 0; i < 4; i++) {
-                // Use seeded RNG for position
-                const angle = this.rng() * Math.PI * 2;
-                const radius = Math.sqrt(this.rng()) * spawnRadius;
-                const x = centerX + radius * Math.cos(angle);
-                const y = centerY + radius * Math.sin(angle);
-                
-                const duck = new Duck(x, y);
-                duck.color = colors[colorIndex];
+                const position = this.getFreeDuckSpawnPosition(centerX, centerY, spawnRadius, duckRadius);
+                const duck = new Duck(position.x, position.y);
+                duck.setMainColor(colors[colorIndex]);
                 duck.active = false;
                 this.addObject(duck);
             }
@@ -230,10 +341,13 @@ class Game {
 
         // Update FPS counter
         if (currentTime / 1000 - this.lastFpsUpdate >= 1.0) {
-            this.currentFps = this.fixedUpdatesThisSecond;
+            this.currentFixedFps = this.fixedUpdatesThisSecond;
+            this.currentFps = this.updatesThisSecond;
             this.fixedUpdatesThisSecond = 0;
+            this.updatesThisSecond = 0;
             this.lastFpsUpdate = currentTime / 1000;
         }
+        this.updatesThisSecond++;  // Increment regular update counter
 
         // Add to accumulator
         this.accumulator += deltaTime;
@@ -244,8 +358,20 @@ class Game {
         // Draw boundary first
         this.boundary.draw(this.ctx);
 
+        // If in replay mode, update dog's target position before physics update
+        if (this.state === GameState.REPLAY && !this.replayPaused && this.replayData) {
+            // Keep the last known position when we hit the end of replay
+            const frameToUse = Math.min(this.replayFrame, this.recordedFrames - 1);
+            const index = frameToUse * 2;
+            const x = this.replayData.positions[index];
+            const y = this.replayData.positions[index + 1];
+            if (this.dog) {
+                this.dog.target_pos = new Vector(x, y);
+            }
+        }
+
         // Run fixed updates based on game state
-        if (this.accumulator >= this.fixedTimeStep) {
+        while (this.accumulator >= this.fixedTimeStep) {
             // Always update all objects physics and interactions
             for (const obj of this.objects) {
                 if (obj.fixedUpdate) obj.fixedUpdate(this.fixedTimeStep, this);
@@ -262,6 +388,9 @@ class Game {
                 case GameState.PLAYING:
                     this.updatePlayingLogic(this.fixedTimeStep);
                     break;
+                case GameState.REPLAY:
+                    this.updateReplayLogic(this.fixedTimeStep);
+                    break;
                 case GameState.GAMEOVER:
                     this.updateGameoverLogic(this.fixedTimeStep);
                     break;
@@ -270,6 +399,14 @@ class Game {
             this.fixedUpdatesThisSecond++;
             this.accumulator -= this.fixedTimeStep;
         }
+
+        // Run regular update (every frame)
+        // Update all objects that have an update method
+        for (const obj of this.objects) {
+            if (obj.update) obj.update(deltaTime, this);
+        }
+        // Update boundary if it has an update method
+        if (this.boundary.update) this.boundary.update(deltaTime, this);
 
         // Draw based on game state
         this.draw(this.accumulator / this.fixedTimeStep);
@@ -284,10 +421,38 @@ class Game {
     }
 
     updatePlayingLogic(dt) {
-        // Game-specific logic like:
-        // - Score tracking
-        // - Win/loss conditions
-        // - Timer updates
+        // Update timer
+        this.gameTime += dt;
+        
+        // Record mouse position for replay, with limit
+        if (this.recordedFrames < this.MAX_RECORDED_FRAMES) {
+            const index = this.recordedFrames * 2;
+            this.recordedPositions[index] = Math.round(this.mousePos.x);
+            this.recordedPositions[index + 1] = Math.round(this.mousePos.y);
+            this.recordedFrames++;
+        }
+        
+        // Check if all ducks are sorted
+        if (this.checkAllDucksSorted()) {
+            this.finalTime = this.gameTime;
+            // Store replay data before ending game, but only if we didn't exceed the limit
+            if (this.recordedFrames < this.MAX_RECORDED_FRAMES) {
+                this.replayData = {
+                    seed: this.currentSeed,
+                    positions: this.recordedPositions.slice(0, this.recordedFrames * 2),
+                    initialDogState: this.initialDogState
+                };
+            }
+            this.endGame();
+        }
+    }
+
+    checkAllDucksSorted() {
+        // Return false if any duck is not sorted
+        for (const duck of Duck.ducks) {
+            if (!duck.isSorted) return false;
+        }
+        return Duck.ducks.length > 0;
     }
 
     updateGameoverLogic(dt) {
@@ -296,48 +461,179 @@ class Game {
         // - Restart prompts
     }
 
+    startReplay() {
+        if (!this.replayData) return;
+        
+        // Reset game state for replay
+        this.resetGame();
+        this.state = GameState.REPLAY;
+        this.replayFrame = 0;
+        this.replayPaused = false;
+        
+        // Hide UI elements
+        document.getElementById('seedControls').style.display = 'none';
+        document.getElementById('resetButton').style.display = 'none';
+        
+        // Set the same seed to ensure identical setup
+        this.setSeed(this.replayData.seed);
+        
+        // Remove pen and activate ducks (same as normal game start)
+        this.objects = this.objects.filter(obj => !(obj instanceof Pen));
+        this.objects.forEach(obj => {
+            if (obj instanceof Duck) {
+                obj.active = true;
+            }
+        });
+
+        // Restore initial dog state
+        if (this.dog && this.replayData.initialDogState) {
+            const state = this.replayData.initialDogState;
+            this.dog.pos = new Vector(state.position.x, state.position.y);
+            this.dog.vel = new Vector(state.velocity.x, state.velocity.y);
+            this.dog.target_pos = new Vector(state.targetPosition.x, state.targetPosition.y);
+        }
+    }
+
+    updateReplayLogic(dt) {
+        if (!this.replayData || this.replayPaused) return;
+        
+        // Increment replay frame
+        if (this.replayFrame < this.recordedFrames) {
+            this.replayFrame++;
+        } else {
+            this.endReplay();
+        }
+    }
+
+    endReplay() {
+        this.state = GameState.GAMEOVER;
+        document.getElementById('resetButton').style.display = 'block';
+    }
+
     draw(alpha) {
-        // Draw all objects
+        // Clear canvas to transparency
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw boundary first
+        this.boundary.draw(this.ctx);
+
+        // Draw timer if in PLAYING or GAMEOVER state
+        if (this.state === GameState.PLAYING || this.state === GameState.GAMEOVER) {
+            const timeToShow = this.state === GameState.PLAYING ? this.gameTime : this.finalTime;
+            const seconds = Math.floor(timeToShow).toString();
+            
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.2; // Make it somewhat transparent
+            this.ctx.font = '140px Arial';
+            this.ctx.fillStyle = 'white';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(seconds, this.canvas.width/2, this.canvas.height/2);
+            this.ctx.restore();
+        }
+
+        // Draw all other objects
         for (const obj of this.objects) {
             if (obj.draw) obj.draw(this.ctx, alpha);
         }
 
+        // Draw replay mouse cursor if in replay mode
+        if (this.state === GameState.REPLAY && this.replayData && this.replayFrame < this.recordedFrames) {
+            const index = this.replayFrame * 2;
+            const x = this.replayData.positions[index];
+            const y = this.replayData.positions[index + 1];
+            const size = 10;  // Size of the cross
+            
+            this.ctx.strokeStyle = 'white';
+            this.ctx.lineWidth = 2;
+            
+            // Draw horizontal line
+            this.ctx.beginPath();
+            this.ctx.moveTo(x - size, y);
+            this.ctx.lineTo(x + size, y);
+            this.ctx.stroke();
+            
+            // Draw vertical line
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, y - size);
+            this.ctx.lineTo(x, y + size);
+            this.ctx.stroke();
+        }
+
         // Draw state-specific UI
         this.ctx.fillStyle = 'white';
+        this.ctx.strokeStyle = 'black';
+        this.ctx.lineWidth = 8;
+        this.ctx.lineJoin = 'round';
+        this.ctx.lineCap = 'round';
         
         switch (this.state) {
             case GameState.PREGAME:
                 // Draw title
                 this.ctx.font = '48px Arial';
                 this.ctx.textAlign = 'center';
+                this.ctx.strokeText('duck sorter', this.canvas.width/2, 100);
                 this.ctx.fillText('duck sorter', this.canvas.width/2, 100);
                 
                 // Draw subtitle
                 this.ctx.font = '24px Arial';
+                this.ctx.strokeText('click anywhere to start', this.canvas.width/2, 140);
                 this.ctx.fillText('click anywhere to start', this.canvas.width/2, 140);
-                
                 break;
+
             case GameState.PLAYING:
-                // Reset text alignment for other states
                 this.ctx.textAlign = 'left';
-                // Draw game UI (score, time, etc)
                 break;
+
+            case GameState.REPLAY:
+                this.ctx.textAlign = 'center';
+                this.ctx.font = '24px Arial';
+                const status = this.replayPaused ? 'PAUSED' : 'PLAYING';
+                this.ctx.strokeText(`Replay: ${status}`, this.canvas.width/2, this.canvas.height - 40);
+                this.ctx.fillText(`Replay: ${status}`, this.canvas.width/2, this.canvas.height - 40);
+                this.ctx.font = '16px Arial';
+                this.ctx.strokeText('Space: Pause/Resume', this.canvas.width/2, this.canvas.height - 20);
+                this.ctx.fillText('Space: Pause/Resume', this.canvas.width/2, this.canvas.height - 20);
+                break;
+
             case GameState.GAMEOVER:
                 this.ctx.textAlign = 'center';
-                this.ctx.fillText('Game Over!', this.canvas.width/2, 100);
+                this.ctx.font = '48px Arial';
+                this.ctx.strokeText('good doggy!', this.canvas.width/2, 100);
+                this.ctx.fillText('good doggy!', this.canvas.width/2, 100);
+                this.ctx.strokeText('ducks sorted in', this.canvas.width/2, 160);
+                this.ctx.fillText('ducks sorted in', this.canvas.width/2, 160);
+                this.ctx.strokeText(`${this.finalTime.toFixed(3)} seconds`, this.canvas.width/2, 220);
+                this.ctx.fillText(`${this.finalTime.toFixed(3)} seconds`, this.canvas.width/2, 220);
+                
+                this.ctx.font = '24px Arial';
+                this.ctx.strokeText(`on seed: ${this.currentSeed}`, this.canvas.width/2, 280);
+                this.ctx.fillText(`on seed: ${this.currentSeed}`, this.canvas.width/2, 280);
                 break;
         }
 
         // Draw FPS counter and deltaTime (left-aligned)
         this.ctx.textAlign = 'left';
         this.ctx.font = '16px Arial';
-        this.ctx.fillText(`Fixed Updates/sec: ${this.currentFps}`, 10, this.canvas.height - 40);
+        this.ctx.strokeText(`Updates/sec: ${this.currentFps}`, 10, this.canvas.height - 60);
+        this.ctx.fillText(`Updates/sec: ${this.currentFps}`, 10, this.canvas.height - 60);
+        this.ctx.strokeText(`Fixed Updates/sec: ${this.currentFixedFps}`, 10, this.canvas.height - 40);
+        this.ctx.fillText(`Fixed Updates/sec: ${this.currentFixedFps}`, 10, this.canvas.height - 40);
+        this.ctx.strokeText(`Fixed dt: ${this.fixedTimeStep.toFixed(4)}`, 10, this.canvas.height - 20);
         this.ctx.fillText(`Fixed dt: ${this.fixedTimeStep.toFixed(4)}`, 10, this.canvas.height - 20);
     }
 
     startGame() {
-        // Hide seed controls
+        // Hide UI elements
         document.getElementById('seedControls').style.display = 'none';
+        document.getElementById('resetButton').style.display = 'none';
+        
+        // Reset timer
+        this.gameTime = 0;
+        
+        // Clear replay data
+        this.recordedFrames = 0;
+        this.replayData = null;
         
         // Remove pen
         this.objects = this.objects.filter(obj => !(obj instanceof Pen));
@@ -349,20 +645,35 @@ class Game {
             }
         });
 
+        // Store initial dog state
+        const initialDogState = {
+            position: new Vector(this.dog.pos.x, this.dog.pos.y),
+            velocity: new Vector(this.dog.vel.x, this.dog.vel.y),
+            targetPosition: new Vector(this.dog.target_pos.x, this.dog.target_pos.y)
+        };
+
+        // Store this for replay
+        this.initialDogState = initialDogState;
+
         this.state = GameState.PLAYING;
     }
 
     endGame() {
+        // Show reset button
+        document.getElementById('resetButton').style.display = 'block';
+        // Show replay button if we have replay data
+        document.getElementById('replayBtn').style.display = this.replayData ? 'block' : 'none';
         this.state = GameState.GAMEOVER;
-        // Additional game end logic here
     }
 
     resetGame() {
-        // Show seed controls
+        // Show/hide UI elements
         document.getElementById('seedControls').style.display = 'block';
+        document.getElementById('resetButton').style.display = 'none';
         
         // Remove all ducks and the pen
         this.objects = this.objects.filter(obj => !(obj instanceof Duck || obj instanceof Pen));
+        Duck.ducks = []; // Clear static ducks array
         
         // Recreate the pen
         const centerX = this.canvas.width / 2;
