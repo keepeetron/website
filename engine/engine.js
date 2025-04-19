@@ -1,3 +1,4 @@
+import { Vector } from './vector.js';
 export class GameEngine {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
@@ -19,29 +20,57 @@ export class GameEngine {
         this.currentFixedFps = 0;
         this.currentFps = 0;
         
-        // Mouse position
+        // Input state
         this.mousePos = { x: 0, y: 0 };
+        this.touchDelta = new Vector(0, 0);
+        this.lastTouchPos = null;
+        this.isTouchDevice = false;
         
         // Set canvas size
         this.canvas.width = 768;
         this.canvas.height = 768;
+        
+        // Setup input handlers
+        this.setupInputHandlers();
         
         // Start game loop
         this.gameLoop = this.gameLoop.bind(this);
         requestAnimationFrame(this.gameLoop);
     }
 
-    setupMouseTracking() {
-        document.addEventListener('mousemove', (e) => {
+    setupInputHandlers() {
+        // Mouse tracking (still on canvas)
+        this.canvas.addEventListener('mousemove', (e) => {
             const rect = this.canvas.getBoundingClientRect();
+            this.mousePos = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        });
+
+        // Touch tracking (on document)
+        document.addEventListener('touchstart', (e) => {
+            this.isTouchDevice = true;
+            const touch = e.touches[0];
+            this.lastTouchPos = new Vector(touch.clientX, touch.clientY);
+            e.preventDefault();
+        }, { passive: false });
+
+        document.addEventListener('touchmove', (e) => {
+            const touch = e.touches[0];
+            const currentTouchPos = new Vector(touch.clientX, touch.clientY);
             
-            // Calculate scale ratio between CSS size and actual canvas size
-            const scaleX = this.canvas.width / rect.width;
-            const scaleY = this.canvas.height / rect.height;
+            if (this.lastTouchPos) {
+                this.touchDelta = currentTouchPos.sub(this.lastTouchPos);
+                this.lastTouchPos = currentTouchPos;
+            }
             
-            // Calculate mouse position relative to canvas and apply scaling
-            this.mousePos.x = Math.round((e.clientX - rect.left) * scaleX);
-            this.mousePos.y = Math.round((e.clientY - rect.top) * scaleY);
+            e.preventDefault();
+        }, { passive: false });
+
+        document.addEventListener('touchend', () => {
+            this.lastTouchPos = null;
+            this.touchDelta = new Vector(0, 0);
         });
     }
 

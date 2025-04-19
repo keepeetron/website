@@ -37,7 +37,7 @@ export class Dog extends Actor {
     }
 
     fixedUpdate(deltaTime, game) {
-        const freq = 250.0;
+        const freq = 200.0;
         const damp = 25.0;
         
         const toTarget = this.target_pos.sub(this.pos);

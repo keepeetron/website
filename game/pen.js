@@ -1,5 +1,6 @@
 import { Vector } from '../engine/vector.js';
 import { Dog } from './dog.js';
+import { GameState } from './game.js';
 
 export class Pen {
     static thickness = 8;
@@ -28,6 +29,13 @@ export class Pen {
 
             // If dog is inside pen
             if (dist < this.radius + dog.radius) {
+
+                // Start the game if we're in pregame state
+                if (game.state === GameState.PREGAME) {
+                    game.startGame();
+                    return;
+                }
+
                 // Move dog outside pen
                 const normal = toDog.normalize();
                 dog.pos = this.pos.add(normal.mult(this.radius + dog.radius));

@@ -35,7 +35,8 @@ class DuckSorterGame {
         
         // Create game objects
         this.boundary = new Boundary(this.engine.canvas.width/2, this.engine.canvas.height/2, this.engine.canvas.width);
-        this.dog = new Dog(384, 384);
+        
+        this.dog = new Dog(0, 0);
         
         const centerX = this.engine.canvas.width / 2;
         const centerY = this.engine.canvas.height / 2;
@@ -44,9 +45,6 @@ class DuckSorterGame {
         
         // Set default daily seed
         this.setSeed(getDailySeed());
-        
-        // Set up mouse tracking
-        this.engine.setupMouseTracking();
         
         // Set initial state
         this.engine.setState(this);
@@ -113,12 +111,17 @@ class DuckSorterGame {
     }
 
     fixedUpdate(dt) {
-        // Update dog's target position based on mouse
+        // Update dog's target position based on input
         if (this.dog && (this.state === GameState.PREGAME || this.state === GameState.PLAYING)) {
-            this.dog.target_pos = new Vector(this.engine.mousePos.x, this.engine.mousePos.y);
+            if (this.engine.isTouchDevice) {
+                // For touch devices, add the touch delta to the current target position
+                const touchDelta = this.engine.touchDelta;
+                this.dog.target_pos = this.dog.target_pos.add(touchDelta);
+            } else {
+                // For mouse, directly set to mouse position
+                this.dog.target_pos = new Vector(this.engine.mousePos.x, this.engine.mousePos.y);
+            }
         }
-
-
 
         switch (this.state) {
             case GameState.PREGAME:
@@ -231,10 +234,17 @@ class DuckSorterGame {
         this.pen = null;
         Duck.ducks = [];
         
-        const centerX = this.engine.canvas.width / 2;
-        const centerY = this.engine.canvas.height / 2;
+        const center = new Vector(this.engine.canvas.width / 2, this.engine.canvas.height / 2);
         const penRadius = 128;
-        this.pen = new Pen(centerX, centerY, penRadius);
+        this.pen = new Pen(center.x, center.y, penRadius);
+        
+        // Position dog at outer boundary
+        const boundaryRadius = this.engine.canvas.width / 2;
+        const dogRadius = 16; // Dog's radius
+        const normal = this.dog.pos.sub(center).normalize();
+        this.dog.pos = center.add(normal.mult(boundaryRadius - dogRadius - 10));
+        this.dog.vel = new Vector(0, 0);
+        this.dog.target_pos = this.dog.pos;
         
         this.resetRNG();
         this.regenerateDucks();
