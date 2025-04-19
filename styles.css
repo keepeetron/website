@@ -15,6 +15,9 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    overflow: hidden; /* Prevent scrolling */
+    touch-action: none; /* Prevent default touch behaviors */
+    -webkit-overflow-scrolling: none; /* Disable momentum scrolling on iOS */
 }
 
 /* Header and Navigation */
@@ -128,6 +131,14 @@ footer {
     body {
         align-items: flex-start;
         min-height: auto;
+        height: 100vh; /* Ensure body takes full viewport height */
+        overflow: hidden; /* Prevent scrolling */
+        position: fixed; /* Prevent scroll on iOS */
+    }
+
+    html {
+        overflow: hidden; /* Prevent scrolling on the html element */
+        height: 100%; /* Ensure html takes full viewport height */
     }
 
     main {

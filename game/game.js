@@ -246,4 +246,12 @@ class DuckSorterGame {
 // Initialize game when the page loads
 document.addEventListener('DOMContentLoaded', () => {
     const game = new DuckSorterGame('gameCanvas');
-}); 
+});
+
+// Prevent default touch behaviors
+document.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+}, { passive: false });
+
+// Prevent pull-to-refresh
+document.body.style.overscrollBehavior = 'none'; 
