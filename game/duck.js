@@ -1,14 +1,46 @@
 import { Actor } from './actor.js';
-import { Vector } from './vector.js';
+import { Vector } from '../engine/vector.js';
 import { Dog } from './dog.js';
+import { angleLerp } from '../engine/utils.js';
+import { DebugDraw } from '../engine/debug_draw.js';
 
 export class Duck extends Actor {
     static ducks = [];
 
-    constructor(x, y) {
-        super(x, y, 12, '#f1c40f'); // Default to yellow, but color will be changed later
+    static Wing = class {
+        constructor(localPos) {
+            this.localPos = localPos; // Position relative to duck
+            this.angle = 0;
+            this.targetAngle = 0;
+            this.color = '#000000'; // Default wing color
+        }
+
+        draw(ctx, duckPos, duckAngle) {
+            ctx.save();
+            
+            // Move to wing's global position
+            const globalPos = duckPos.add(this.localPos.rotate(duckAngle));
+            ctx.translate(globalPos.x, globalPos.y);
+            
+            // Apply wing rotation (no need to subtract duckAngle since angle is already in global space)
+            ctx.rotate(this.angle);
+            
+            // Draw wing
+            ctx.beginPath();
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 4;
+            ctx.moveTo(0, 0);
+            ctx.lineTo(16, 0); // Wing length
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+    }
+
+    constructor(x, y, color) {
+        super(x, y, 10, color); // Default to yellow, but color will be changed later
         this.active = true;
-        this.isSorted = true;
+        this.isSorted = false;
         this.closestOtherDuck = null;
         this.avgPosOfNearbyGroup = new Vector(0, 0);
         
@@ -19,20 +51,29 @@ export class Duck extends Actor {
         // Set beak properties - square and as wide as head
         this.mouthSize = new Vector(this.headSize.y, this.headSize.y);
         this.mouthColor = '#ffffff';
+
+        // Create wings
+        var wingOffset = this.radius * 0.8;
+        this.leftWing = new Duck.Wing(new Vector(0, -wingOffset));
+        this.rightWing = new Duck.Wing(new Vector(0, wingOffset));
+        
+        // Set wing colors to match duck
+        this.leftWing.color = this.color;
+        this.rightWing.color = this.color;
         
         Duck.ducks.push(this);
     }
 
-    getClosestOtherDuck(game) {
+    getClosestOtherDuck() {
         let closest = null;
         let minDist = Infinity;
         
-        for (const obj of game.objects) {
-            if (obj instanceof Duck && obj !== this) {
-                const dist = this.distanceTo(obj);
+        for (const duck of Duck.ducks) {
+            if (duck !== this) {
+                const dist = this.distanceTo(duck);
                 if (dist < minDist) {
                     minDist = dist;
-                    closest = obj;
+                    closest = duck;
                 }
             }
         }
@@ -40,14 +81,14 @@ export class Duck extends Actor {
         return closest;
     }
 
-    getClosestNOtherDucks(game, n) {
+    getClosestNOtherDucks(n) {
         const ducks = [];
         
-        for (const obj of game.objects) {
-            if (obj instanceof Duck && obj !== this) {
+        for (const duck of Duck.ducks) {
+            if (duck !== this) {
                 ducks.push({
-                    duck: obj,
-                    dist: this.distanceTo(obj)
+                    duck: duck,
+                    dist: this.distanceTo(duck)
                 });
             }
         }
@@ -69,21 +110,21 @@ export class Duck extends Actor {
     fixedUpdate(dt, game) {
         if (!this.active) return;
 
-        const centerForce = 1.4;
+        const centerForce = 1.8;
         const damping = 5.0;
-        const separationForce = 5000.0;
-        const groupForce = 2.5;
+        const separationForce = 7000.0;
+        const groupForce = 3.0;
         const dogForce = 20000.0;
 
         // Initialize total force
         let totalForce = new Vector(0, 0);
 
         // Center force (pull towards origin, matching Godot's -pos)
-        const center = new Vector(game.canvas.width / 2, game.canvas.height / 2);
+        const center = new Vector(game.engine.canvas.width / 2, game.engine.canvas.height / 2);
         totalForce = totalForce.add(center.sub(this.pos).mult(centerForce));
 
         // Separation from closest duck
-        const closestDuck = this.getClosestOtherDuck(game);
+        const closestDuck = this.getClosestOtherDuck();
         this.closestOtherDuck = closestDuck;
         
         if (closestDuck) {
@@ -93,7 +134,7 @@ export class Duck extends Actor {
         }
 
         // Group cohesion with nearby ducks
-        const closestNDucks = this.getClosestNOtherDucks(game, 2);
+        const closestNDucks = this.getClosestNOtherDucks(2);
         this.isSorted = true;
         
         for (const duck of closestNDucks) {
@@ -124,13 +165,27 @@ export class Duck extends Actor {
         super.fixedUpdate(dt);
         
         // For ducks, both body and head face velocity direction
-        const velAngle = Math.atan2(this.vel.y, this.vel.x);
+        const velAngle = this.vel.angle();
         this.targetBodyAngle = velAngle;
         this.targetHeadAngle = velAngle;
     }
 
     update(deltaTime) {
-        if (!this.active) return;
+        // Calculate point behind duck based on its angle
+        const behindDistance = this.radius * 2.0;
+        const behindPoint = this.pos.add(new Vector(1, 0).rotate(this.angle + Math.PI).mult(behindDistance));
+        
+        // Wing lerp speed
+        const wingLerpSpeed = 12.0;
+        // Update left wing
+        const leftWingPos = this.pos.add(this.leftWing.localPos.rotate(this.angle));
+        this.leftWing.targetAngle = leftWingPos.angleTo(behindPoint);
+        this.leftWing.angle = angleLerp(this.leftWing.angle, this.leftWing.targetAngle, deltaTime * wingLerpSpeed);
+        
+        // Update right wing
+        const rightWingPos = this.pos.add(this.rightWing.localPos.rotate(this.angle));
+        this.rightWing.targetAngle = rightWingPos.angleTo(behindPoint);
+        this.rightWing.angle = angleLerp(this.rightWing.angle, this.rightWing.targetAngle, deltaTime * wingLerpSpeed);
         
         // Let Actor handle visual interpolation
         super.update(deltaTime);
@@ -140,22 +195,8 @@ export class Duck extends Actor {
         // Draw the base actor (body and head)
         super.draw(ctx, alpha);
         
-        // Save context for beak drawing
-        ctx.save();
-        
-        // Move to actor position
-        ctx.translate(this.pos.x, this.pos.y);
-        
-        // Calculate body angle from velocity
-        const bodyAngle = Math.atan2(this.vel.y, this.vel.x);
-        ctx.rotate(bodyAngle);
-        
-        // Move to head position
-        ctx.translate(this.headOffset, 0);
-        
-        // Apply head rotation relative to body
-        ctx.rotate(this.headAngle - bodyAngle);
-        
-        ctx.restore();
+        // Draw wings
+        this.leftWing.draw(ctx, this.pos, this.angle);
+        this.rightWing.draw(ctx, this.pos, this.angle);
     }
 } 

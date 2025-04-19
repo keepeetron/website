@@ -1,11 +1,10 @@
-import { Vector } from './vector.js';
+import { Vector } from '../engine/vector.js';
 
 export class Actor {
-    constructor(x, y, radius, color = '#e74c3c') {
+    constructor(x, y, radius, color) {
         this.pos = new Vector(x, y);
         this.vel = new Vector(0, 0);
         this.radius = radius;
-        this.setMainColor(color); // Use new method to set colors
         this.angle = 0; // Initialize angle to 0
         
         // Head properties
@@ -21,13 +20,11 @@ export class Actor {
         // Mouth/nose properties
         this.mouthSize = new Vector(radius * 0.2, radius * 0.15);
         this.mouthColor = '#ffffff'; // default white, can be overridden
-    }
 
-    // Method to set both body and head color
-    setMainColor(color) {
         this.color = color;
         this.headColor = color;
     }
+    
 
     fixedUpdate(deltaTime) {
         // Update position
@@ -35,7 +32,7 @@ export class Actor {
         
         // Calculate target angles based on velocity by default
         // Child classes can override these after calling super.fixedUpdate
-        const velAngle = Math.atan2(this.vel.y, this.vel.x);
+        const velAngle = this.vel.angle();
         this.targetBodyAngle = velAngle;
         this.targetHeadAngle = velAngle;
     }

@@ -1,5 +1,5 @@
 import { Actor } from './actor.js';
-import { Vector } from './vector.js';
+import { Vector } from '../engine/vector.js';
 
 export class Dog extends Actor {
     static dogs = [];
@@ -18,19 +18,21 @@ export class Dog extends Actor {
         this.mouthColor = '#000000';
 
         // Tail properties
+        const tailBase = new Vector(x, y);
+        const tailEnd = new Vector(x, y + 20);
         this.tail = {
-            p0: new Vector(x, y), // Tail base position (follows dog)
-            p1: new Vector(x, y + 20), // Tail end position
+            p0: tailBase, // Tail base position (follows dog)
+            p1: tailEnd, // Tail end position
             v0: new Vector(0, 0), // Tail base velocity
             v1: new Vector(0, 0), // Tail end velocity
             springTargetLength: 12.0,
             springFreq: 200.0,
             maxLength: 32.0,
             drag: 6.0,
-            color: 'white', // Yellow color for tail
+            color: '#ffffff', // White color for tail
             volume: 200.0, // Controls tail thickness
             wagCycle: 0.0,
-            prevP0: new Vector(x, y)
+            prevP0: tailBase.copy()
         };
     }
 
@@ -55,8 +57,8 @@ export class Dog extends Actor {
         super.fixedUpdate(deltaTime);
         
         // Override target angles - body follows velocity, head follows target
-        this.targetBodyAngle = Math.atan2(this.vel.y, this.vel.x);
-        this.targetHeadAngle = Math.atan2(toTarget.y, toTarget.x);
+        this.targetBodyAngle = this.vel.angle();
+        this.targetHeadAngle = toTarget.angle();
     }
 
     update(deltaTime) {
@@ -84,9 +86,18 @@ export class Dog extends Actor {
         ).rotate(bodyAngle);  // Rotate to match body angle
 
         // Update tail base position to follow dog with offset
-        tail.p0 = this.pos.add(baseOffset);
+        const newP0 = this.pos.add(baseOffset);
+        
+        // Calculate base velocity based on position change, avoiding division by zero
+        if (dt > 0) {
+            tail.v0 = newP0.sub(tail.p0).div(dt);
+        } else {
+            tail.v0 = new Vector(0, 0);
+        }
+        tail.p0 = newP0;
+        
+        // Update tail end velocity with drag
         tail.v1 = tail.v1.add(tail.v1.mult(-tail.drag * dt));
-        tail.v0 = tail.p0.sub(tail.p1).mult(1/dt);
         
         const length = Vector.dist(tail.p0, tail.p1);
         const dir = tail.p1.sub(tail.p0).normalize();
@@ -103,7 +114,7 @@ export class Dog extends Actor {
 
         // Return to center behind dog
         const centerAngle = bodyAngle; // Point tail opposite to body direction
-        const currentAngle = Math.atan2(tail.p1.y - tail.p0.y, tail.p1.x - tail.p0.x);
+        const currentAngle = Vector.angle(tail.p1, tail.p0);
         
         // Calculate angle difference and normalize to [-PI, PI]
         let angleDiff = ((centerAngle - currentAngle + TAU) % TAU);

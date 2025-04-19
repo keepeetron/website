@@ -81,4 +81,17 @@ export class Vector {
             this.x * sin + this.y * cos
         );
     }
+
+    distanceTo(other) {
+        return Vector.dist(this, other);
+    }
+
+    angle() {
+        return Math.atan2(this.y, this.x);
+    }
+
+    angleTo(other) {
+        return Math.atan2(other.y - this.y, other.x - this.x);
+    }
+
 } 

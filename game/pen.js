@@ -1,4 +1,4 @@
-import { Vector } from './vector.js';
+import { Vector } from '../engine/vector.js';
 import { Dog } from './dog.js';
 
 export class Pen {
@@ -42,5 +42,9 @@ export class Pen {
                 }
             }
         }
+    }
+
+    update(dt) {
+        // dont need to do anything but we'll put the function here for consistency
     }
 } 
