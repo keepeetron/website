@@ -4,6 +4,8 @@ import { Dog } from './dog.js';
 import { Duck } from './duck.js';
 import { Pen } from './pen.js';
 import { Boundary } from './boundary.js';
+import { DebugDraw } from './debug_draw.js';
+import { utils } from './utils.js';
 
 // Game states enum
 const GameState = {
