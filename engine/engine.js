@@ -61,7 +61,17 @@ export class GameEngine {
             const currentTouchPos = new Vector(touch.clientX, touch.clientY);
             
             if (this.lastTouchPos) {
-                this.touchDelta = currentTouchPos.sub(this.lastTouchPos);
+                // Calculate the scale ratio between screen and canvas
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                
+                // Scale the delta to match canvas coordinates
+                const rawDelta = currentTouchPos.sub(this.lastTouchPos);
+                this.touchDelta = new Vector(
+                    rawDelta.x * scaleX,
+                    rawDelta.y * scaleY
+                );
                 this.lastTouchPos = currentTouchPos;
             }
             
