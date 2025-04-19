@@ -30,12 +30,21 @@ export class GameUI {
     }
 
     setupEventListeners() {
+        // Helper function to handle both click and touch events
+        const addButtonHandler = (element, handler) => {
+            element.addEventListener('click', handler);
+            element.addEventListener('touchend', (e) => {
+                e.preventDefault(); // Prevent any default touch behavior
+                handler();
+            }, { passive: false });
+        };
+
         // Seed controls
-        this.randomSeedBtn.addEventListener('click', () => {
+        addButtonHandler(this.randomSeedBtn, () => {
             this.game.setSeed(Math.random().toString(36).substring(2, 15));
         });
         
-        this.dailySeedBtn.addEventListener('click', () => {
+        addButtonHandler(this.dailySeedBtn, () => {
             this.game.setSeed(getDailySeed());
         });
         
@@ -44,11 +53,11 @@ export class GameUI {
         });
         
         // Reset and replay buttons
-        this.resetBtn.addEventListener('click', () => {
+        addButtonHandler(this.resetBtn, () => {
             this.game.resetGame();
         });
         
-        this.replayBtn.addEventListener('click', () => {
+        addButtonHandler(this.replayBtn, () => {
             this.game.startReplay();
         });
         
