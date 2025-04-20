@@ -61,10 +61,9 @@ class DuckSorterGame {
     resetRNG() {
         this.engine.rng = mulberry32(hashCode(this.currentSeed));
     }
-    getFreeDuckSpawnPosition(centerX, centerY, spawnRadius, duckRadius) {
+    getFreeDuckSpawnPosition(center, spawnRadius, duckRadius) {
         const minDistance = duckRadius * 2;
         const maxAttempts = 100;
-        const center = new Vector(centerX, centerY);
         
         for (let attempts = 0; attempts < maxAttempts; attempts++) {
             const point = getRandomPointInUnitCircle(this.engine.rng);
@@ -93,8 +92,7 @@ class DuckSorterGame {
         // Clear existing ducks
         Duck.ducks = [];
         
-        const centerX = this.engine.canvas.width / 2;
-        const centerY = this.engine.canvas.height / 2;
+        const center = new Vector(this.engine.canvas.width / 2, this.engine.canvas.height / 2);
         const penRadius = 128;
         const duckRadius = 12;
         const spawnRadius = penRadius - (Pen.thickness / 2) - duckRadius;
@@ -103,7 +101,7 @@ class DuckSorterGame {
         
         for (let colorIndex = 0; colorIndex < colors.length; colorIndex++) {
             for (let i = 0; i < 4; i++) {
-                const position = this.getFreeDuckSpawnPosition(centerX, centerY, spawnRadius, duckRadius);
+                const position = this.getFreeDuckSpawnPosition(center, spawnRadius, duckRadius);
                 const duck = new Duck(position.x, position.y, colors[colorIndex]);
                 duck.active = false;
             }

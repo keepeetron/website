@@ -37,18 +37,19 @@ export class Dog extends Actor {
     }
 
     fixedUpdate(deltaTime, game) {
-        const freq = 200.0;
+        const freq = 500.0;
         const damp = 25.0;
         
         const toTarget = this.target_pos.sub(this.pos);
         
-        // Calculate total force
-        const springForce = toTarget.mult(freq);
-        const dampingForce = this.vel.mult(damp);
-        const totalForce = springForce.sub(dampingForce);
+        this.pos = this.target_pos;
+        // // Calculate total force
+        // const springForce = toTarget.mult(freq);
+        // const dampingForce = this.vel.mult(damp);
+        // const totalForce = springForce.sub(dampingForce);
         
-        // Apply force with single deltaTime scaling
-        this.vel = this.vel.add(totalForce.mult(deltaTime));
+        // // Apply force with single deltaTime scaling
+        // this.vel = this.vel.add(totalForce.mult(deltaTime));
         
         // Store toTarget for debugging visualization
         this.toMouse = toTarget; // Keep the same name for backwards compatibility

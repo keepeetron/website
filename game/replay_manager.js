@@ -10,7 +10,6 @@ export class ReplayManager {
         this.recordedFrames = 0;
         this.replayFrame = 0;
         this.replayData = null;
-        this.replayPaused = false;
         this.initialDogState = null;
     }
 
@@ -49,7 +48,6 @@ export class ReplayManager {
         this.game.resetGame();
         this.game.state = GameState.REPLAY;
         this.replayFrame = 0;
-        this.replayPaused = false;
         
         this.game.ui.hideSeedControls();
         this.game.ui.hideResetButton();
@@ -75,7 +73,7 @@ export class ReplayManager {
     }
 
     updateReplay(dt) {
-        if (!this.replayData || this.replayPaused) return;
+        if (!this.replayData) return;
         
         // Update dog's target position based on replay data
         if (this.game.dog && this.replayFrame < this.recordedFrames) {
@@ -118,16 +116,8 @@ export class ReplayManager {
         if (this.game.state === GameState.REPLAY) {
             ctx.textAlign = 'center';
             ctx.font = '24px Arial';
-            const status = this.replayPaused ? 'PAUSED' : 'PLAYING';
-            ctx.strokeText(`Replay: ${status}`, this.game.engine.canvas.width/2, this.game.engine.canvas.height - 40);
-            ctx.fillText(`Replay: ${status}`, this.game.engine.canvas.width/2, this.game.engine.canvas.height - 40);
-            ctx.font = '16px Arial';
-            ctx.strokeText('Space: Pause/Resume', this.game.engine.canvas.width/2, this.game.engine.canvas.height - 20);
-            ctx.fillText('Space: Pause/Resume', this.game.engine.canvas.width/2, this.game.engine.canvas.height - 20);
+            ctx.strokeText('Replay', this.game.engine.canvas.width/2, this.game.engine.canvas.height - 40);
+            ctx.fillText('Replay', this.game.engine.canvas.width/2, this.game.engine.canvas.height - 40);
         }
-    }
-
-    togglePause() {
-        this.replayPaused = !this.replayPaused;
     }
 } 
