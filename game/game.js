@@ -115,6 +115,7 @@ class DuckSorterGame {
                 // For touch devices, add the touch delta to the current target position
                 const touchDelta = this.engine.touchDelta;
                 this.dog.target_pos = this.dog.target_pos.add(touchDelta);
+                this.engine.touchDelta = new Vector(0, 0);
             } else {
                 // For mouse, directly set to mouse position
                 this.dog.target_pos = new Vector(this.engine.mousePos.x, this.engine.mousePos.y);
