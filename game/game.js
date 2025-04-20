@@ -113,8 +113,9 @@ class DuckSorterGame {
         if (this.dog && (this.state === GameState.PREGAME || this.state === GameState.PLAYING)) {
             if (this.engine.isTouchDevice) {
                 // For touch devices, add the touch delta to the current target position
+                const sensitivity = 2.0;
                 const touchDelta = this.engine.touchDelta;
-                this.dog.target_pos = this.dog.target_pos.add(touchDelta);
+                this.dog.target_pos = this.dog.target_pos.add(touchDelta.mult(sensitivity));
                 this.engine.touchDelta = new Vector(0, 0);
             } else {
                 // For mouse, directly set to mouse position
