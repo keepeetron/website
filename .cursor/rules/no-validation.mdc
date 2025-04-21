@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Do not validate variables before using them. If code errors due to an invalid variable, then we can fix it upstream.

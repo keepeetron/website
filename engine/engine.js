@@ -1,12 +1,28 @@
 import { Vector } from './vector.js';
+import Camera from './camera.js';
+
 export class GameEngine {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
         
+        // Set canvas to fill viewport
+        this.canvas.style.position = 'fixed';
+        this.canvas.style.top = '0';
+        this.canvas.style.left = '0';
+        this.canvas.style.width = '100%';
+        this.canvas.style.height = '100%';
+        this.resizeCanvas();
+        
+        // Add window resize handler
+        window.addEventListener('resize', () => this.resizeCanvas());
+        
         // Engine state
         this.state = null; // To be set by game
         this.rng = null;
+        
+        // Camera setup
+        this.camera = new Camera();
         
         // Fixed update settings
         this.fixedTimeStep = 1 / 60; // 60 updates per second (in seconds)
@@ -21,14 +37,11 @@ export class GameEngine {
         this.currentFps = 0;
         
         // Input state
-        this.mousePos = { x: 0, y: 0 };
+        this.mousePos = { x: 0, y: 0 };  // Raw screen position
+        this.worldMousePos = new Int8Array(2);  // Position in world space as Int8
         this.touchDelta = new Vector(0, 0);
         this.lastTouchPos = null;
         this.isTouchDevice = false;
-        
-        // Set canvas size
-        this.canvas.width = 768;
-        this.canvas.height = 768;
         
         // Setup input handlers
         this.setupInputHandlers();
@@ -52,17 +65,24 @@ export class GameEngine {
         document.addEventListener('touchstart', (e) => {
             this.isTouchDevice = true;
             const touch = e.touches[0];
-            this.lastTouchPos = new Vector(touch.clientX, touch.clientY);
+            const rect = this.canvas.getBoundingClientRect();
+            this.lastTouchPos = new Vector(
+                touch.clientX - rect.left,
+                touch.clientY - rect.top
+            );
             e.preventDefault();
         }, { passive: false });
 
         document.addEventListener('touchmove', (e) => {
             const touch = e.touches[0];
-            const currentTouchPos = new Vector(touch.clientX, touch.clientY);
+            const rect = this.canvas.getBoundingClientRect();
+            const currentTouchPos = new Vector(
+                touch.clientX - rect.left,
+                touch.clientY - rect.top
+            );
             
             if (this.lastTouchPos) {
                 // Calculate the scale ratio between screen and canvas
-                const rect = this.canvas.getBoundingClientRect();
                 const scaleX = this.canvas.width / rect.width;
                 const scaleY = this.canvas.height / rect.height;
                 
@@ -88,6 +108,14 @@ export class GameEngine {
         // Calculate delta time in seconds
         const deltaTime = currentTime / 1000 - this.lastTime;
         this.lastTime = currentTime / 1000;
+
+        // Update mouse position in world space
+        const worldX = (this.mousePos.x - this.canvas.width/2 + this.camera.position.x) / this.camera.scale;
+        const worldY = (this.mousePos.y - this.canvas.height/2 + this.camera.position.y) / this.camera.scale;
+        
+        // Clamp to Int8 range and store
+        this.worldMousePos[0] = Math.max(-128, Math.min(127, Math.round(worldX)));
+        this.worldMousePos[1] = Math.max(-128, Math.min(127, Math.round(worldY)));
 
         // Update FPS counter
         if (currentTime / 1000 - this.lastFpsUpdate >= 1.0) {
@@ -123,7 +151,14 @@ export class GameEngine {
 
         // Draw based on game state
         if (this.state && this.state.draw) {
+            this.camera.beginDraw(this.ctx);
             this.state.draw(this.accumulator / this.fixedTimeStep);
+            this.camera.endDraw(this.ctx);
+            
+            // Draw UI in screen space
+            if (this.state.drawUI) {
+                this.state.drawUI(this.accumulator / this.fixedTimeStep);
+            }
         }
 
         // Continue game loop
@@ -132,5 +167,11 @@ export class GameEngine {
 
     setState(newState) {
         this.state = newState;
+    }
+
+    resizeCanvas() {
+        // Set canvas size to match display size
+        this.canvas.width = document.documentElement.clientWidth;
+        this.canvas.height = document.documentElement.clientHeight;
     }
 } 

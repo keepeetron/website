@@ -11,9 +11,6 @@ body {
     color: #333;
     background-color: #1a1a1a;
     margin: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     min-height: 100vh;
     overflow: hidden; /* Prevent scrolling */
     touch-action: none; /* Prevent default touch behaviors */

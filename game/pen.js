@@ -3,10 +3,9 @@ import { Dog } from './dog.js';
 import { GameState } from './game.js';
 
 export class Pen {
-    static thickness = 8;
+    static thickness = 2;
 
-    constructor(x, y, radius) {
-        this.pos = new Vector(x, y);
+    constructor(radius) {
         this.radius = radius;
         this.color = '#ffffff'; // White color for the pen outline
     }
@@ -14,7 +13,7 @@ export class Pen {
     draw(ctx, alpha) {
         // Draw circle outline
         ctx.beginPath();
-        ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
+        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
         ctx.strokeStyle = this.color;
         ctx.lineWidth = Pen.thickness;
         ctx.stroke();
@@ -24,7 +23,7 @@ export class Pen {
         // Check all dogs using the static list
         for (const dog of Dog.dogs) {
             // Calculate vector from center to dog
-            const toDog = dog.pos.sub(this.pos);
+            const toDog = dog.pos;
             const dist = toDog.mag();
 
             // If dog is inside pen
@@ -38,7 +37,7 @@ export class Pen {
 
                 // Move dog outside pen
                 const normal = toDog.normalize();
-                dog.pos = this.pos.add(normal.mult(this.radius + dog.radius));
+                dog.pos = normal.mult(this.radius + dog.radius);
 
                 // Calculate dot product to find velocity in direction of normal
                 const dot = Vector.dot(dog.vel, normal);

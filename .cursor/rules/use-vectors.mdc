@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+use vectors instead of separate x and y vars. use the angle functions instead of atan2 or cos and sin.

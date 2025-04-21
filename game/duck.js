@@ -2,7 +2,7 @@ import { Actor } from './actor.js';
 import { Vector } from '../engine/vector.js';
 import { Dog } from './dog.js';
 import { angleLerp } from '../engine/utils.js';
-import { DebugDraw } from '../engine/debug_draw.js';
+import { DebugDraw } from '../engine/debugDraw.js';
 
 export class Duck extends Actor {
     static ducks = [];

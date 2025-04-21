@@ -52,8 +52,8 @@ export function angleLerp(start, end, t) {
 }
 
 export function isMobileDevice() {
-    // Check if the device width is less than 768px (common mobile breakpoint)
-    const isMobileWidth = window.innerWidth < 768;
+    // Check if the device width is less than 800px (common mobile breakpoint)
+    const isMobileWidth = window.innerWidth < 800;
     
     // Check for touch capability
     const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
