@@ -84,7 +84,7 @@ class Game {
         if (this.dog && (this.state === GameState.PREGAME || this.state === GameState.PLAYING)) {
             if (this.engine.isTouchDevice) {
                 // For touch devices, add the touch delta to the current position
-                const sensitivity = 2.0;
+                const sensitivity = 1.5;
                 const touchDelta = this.engine.touchDelta;
                 this.dog.pos = this.dog.pos.add(touchDelta.mult(sensitivity));
                 this.engine.touchDelta = new Vector(0, 0);
@@ -221,12 +221,13 @@ class Game {
         for (const duck of Duck.ducks) {
             duck.draw(this.engine.ctx, alpha);
         }
+        // debug drawings are in world space because we use them to debug world objects :)
+        DebugDraw.draw(this.engine.ctx);
     }
 
     drawUI(alpha) {
         // Draw UI elements in screen space
         this.ui.draw(alpha);
-        DebugDraw.draw(this.engine.ctx);
     }
 
     startGame() {

@@ -1,13 +1,18 @@
 import { Actor } from './actor.js';
 import { Vector } from '../engine/vector.js';
 import { angleDiff } from '../engine/utils.js';
-
+import { DebugDraw } from '../engine/debugDraw.js';
 export class Dog extends Actor {
     static dogs = [];
 
     constructor(pos) {
         super(pos, 8, '#ffffff'); // White color, 16px radius
         Dog.dogs.push(this);
+
+        this.buttPos = pos.copy();
+
+        this.interpolatedPos = pos.copy();
+        this.interpolationFactor = 0.5;
         
         // Customize head properties for dog
         this.headSize = new Vector(this.radius * 1.2, this.radius * 0.5);
@@ -49,6 +54,14 @@ export class Dog extends Actor {
     }
 
     update(deltaTime) {
+        this.interpolatedPos = this.interpolatedPos.add(this.pos.sub(this.interpolatedPos).mult(this.interpolationFactor));
+
+        // Lerp butt position towards interpolated position
+        const buttLerpSpeed = 30.0;
+        this.buttPos = this.buttPos.add(this.interpolatedPos.sub(this.buttPos).mult(deltaTime * buttLerpSpeed));
+
+        DebugDraw.line(this.interpolatedPos, this.buttPos, 'white', 1, 0);
+
         // Let Actor handle visual interpolation
         super.update(deltaTime);
         
@@ -125,15 +138,30 @@ export class Dog extends Actor {
     draw(ctx, alpha) {
 
         ctx.save();
-        ctx.translate(this.pos.x, this.pos.y);
 
-        // Draw circle for body
+        // Calculate interpolated position between body and butt
+        const midPoint = this.interpolatedPos.lerp(this.buttPos, 0.5);
+        ctx.translate(midPoint.x, midPoint.y);
+
+        // Calculate direction and distance between interpolated position and butt position
+        const bodyDir = this.buttPos.sub(this.interpolatedPos);
+
+        const stretchFactor = 1.0 + bodyDir.mag() / (this.radius * 4.0);
+        
+        // Rotate context to align with body direction
+        ctx.rotate(bodyDir.angle());
+        
+        // Draw stretched ellipse
         ctx.beginPath();
-        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, this.radius * stretchFactor, this.radius / stretchFactor, 0, 0, Math.PI * 2);
         ctx.fillStyle = this.color;
         ctx.fill();
 
-
+        // Draw circle for body
+        // ctx.beginPath();
+        // ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+        // ctx.fillStyle = this.color;
+        // ctx.fill();
 
         // Draw the base actor (body and head)
         // super.draw(ctx, alpha);
@@ -153,8 +181,6 @@ export class Dog extends Actor {
         // ctx.lineWidth = thickness;
         // ctx.stroke();
         // ctx.restore();
-
         ctx.restore();
-
     }
 } 

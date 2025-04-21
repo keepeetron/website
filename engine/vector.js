@@ -94,4 +94,8 @@ export class Vector {
         return Math.atan2(other.y - this.y, other.x - this.x);
     }
 
+    lerp(other, t) {
+        return this.add(other.sub(this).mult(t));
+    }
+
 } 
