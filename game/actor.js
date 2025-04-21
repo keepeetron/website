@@ -1,8 +1,9 @@
 import { Vector } from '../engine/vector.js';
 
 export class Actor {
-    constructor(x, y, radius, color) {
-        this.pos = new Vector(x, y);
+    constructor(pos, radius, color) {
+        this.pos = pos;
+        this.prevPos = pos;
         this.vel = new Vector(0, 0);
         this.radius = radius;
         this.angle = 0; // Initialize angle to 0
@@ -27,14 +28,8 @@ export class Actor {
     
 
     fixedUpdate(deltaTime) {
-        // Update position
-        this.pos = this.pos.add(this.vel.mult(deltaTime));
-        
-        // Calculate target angles based on velocity by default
-        // Child classes can override these after calling super.fixedUpdate
-        const velAngle = this.vel.angle();
-        this.targetBodyAngle = velAngle;
-        this.targetHeadAngle = velAngle;
+        // duck and dogs movement are now fundamentally different, so there's not much commonality here
+        this.prevPos = this.pos;
     }
 
     update(deltaTime) {
@@ -70,24 +65,16 @@ export class Actor {
     }
 
     draw(ctx, alpha) {
-        // Calculate velocity magnitude for stretch amount
-        const velMag = this.vel.mag();
-        const stretchFactor = 1.0 + velMag / 1400;
-        
+        return;
         // Save current context state
-        ctx.save();
-        
-        // Move to position and rotate
-        ctx.translate(this.pos.x, this.pos.y);
-        ctx.rotate(this.angle);  // Using the interpolated angle
-        
-        // Draw stretched circle for body
-        ctx.beginPath();
-        ctx.ellipse(0, 0, this.radius * stretchFactor, this.radius / stretchFactor, 0, 0, Math.PI * 2);
-        ctx.fillStyle = this.color;
-        ctx.fill();
-        
+        // ctx.save();
         // Draw head
+        // this.drawHead(ctx);
+        // Restore main context state
+        // ctx.restore();
+    }
+
+    drawHead(ctx) {
         ctx.save();
         // Move to head position (offset from body)
         ctx.translate(this.headOffset, 0);
@@ -127,9 +114,6 @@ export class Actor {
         ctx.fillStyle = this.mouthColor;
         ctx.fill();
         
-        ctx.restore();
-        
-        // Restore main context state
         ctx.restore();
     }
 

@@ -19,7 +19,6 @@ export class ReplayManager {
         this.initialDogState = {
             position: new Vector(this.game.dog.pos.x, this.game.dog.pos.y),
             velocity: new Vector(this.game.dog.vel.x, this.game.dog.vel.y),
-            targetPosition: new Vector(this.game.dog.target_pos.x, this.game.dog.target_pos.y)
         };
     }
 
@@ -63,7 +62,6 @@ export class ReplayManager {
             const state = this.replayData.initialDogState;
             this.game.dog.pos = new Vector(state.position.x, state.position.y);
             this.game.dog.vel = new Vector(state.velocity.x, state.velocity.y);
-            this.game.dog.target_pos = new Vector(state.targetPosition.x, state.targetPosition.y);
         }
     }
 
@@ -80,7 +78,7 @@ export class ReplayManager {
             const index = this.replayFrame * 2;
             const x = this.replayData.positions[index];
             const y = this.replayData.positions[index + 1];
-            this.game.dog.target_pos = new Vector(x, y);
+            this.game.dog.pos = new Vector(x, y);
         }
         
         if (this.replayFrame < this.recordedFrames) {

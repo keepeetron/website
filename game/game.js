@@ -32,11 +32,14 @@ class Game {
         // Create UI and ReplayManager
         this.ui = new GameUI(this);
         this.replayManager = new ReplayManager(this);
+
+        this.playAreaRadius = 128;
+        this.duckGenerationRadius = this.playAreaRadius * (1.0/3.0);
         
         // Create game objects
-        this.boundary = new Boundary(128);
-        this.dog = new Dog(0, 0);
-        this.createPen();
+        this.boundary = new Boundary(this.playAreaRadius);
+        this.dog = new Dog(new Vector(0, 0));
+        this.pen = new Pen(this.duckGenerationRadius);
         
         // Set default daily seed
         this.setSeed(getDailySeed());
@@ -56,69 +59,38 @@ class Game {
     resetRNG() {
         this.engine.rng = mulberry32(hashCode(this.currentSeed));
     }
-    getFreeDuckSpawnPosition(spawnRadius, duckRadius) {
-        const minDistance = duckRadius * 2;
-        const maxAttempts = 100;
-        
-        for (let attempts = 0; attempts < maxAttempts; attempts++) {
-            const point = getRandomPointInUnitCircle(this.engine.rng);
-            const pos = point.mult(spawnRadius);
 
-            let overlaps = false;
-            for (const duck of Duck.ducks) {
-                const distance = pos.distanceTo(duck.pos);
-                if (distance < minDistance) {
-                    overlaps = true;
-                    break;
-                }
-            }
-
-            if (!overlaps) {
-                return pos;
-            }
-        }
-
-        // Fallback if no free position found after max attempts
-        const point = getRandomPointInUnitCircle(this.engine.rng);
-        return point.mult(spawnRadius);
-    }
-
-    createPen() {
-        const penRadius = 32;
-        this.pen = new Pen(penRadius);
-    }
 
     regenerateDucks() {
         // Clear existing ducks
         Duck.ducks = [];
         
-        const penRadius = 32;  // Match pen radius
-        const duckRadius = 8;  // Smaller duck radius
-        const spawnRadius = penRadius - (Pen.thickness / 2) - duckRadius;
+        const duckRadius = 5;
+        const spawnRadius = this.duckGenerationRadius - (Pen.thickness / 2) - duckRadius;
 
         const colors = ['#00ffff', '#ff00ff', '#ffff00'];
         
         for (let colorIndex = 0; colorIndex < colors.length; colorIndex++) {
             for (let i = 0; i < 4; i++) {
-                const position = this.getFreeDuckSpawnPosition(spawnRadius, duckRadius);
-                const duck = new Duck(position.x, position.y, colors[colorIndex]);
+                const position = getRandomPointInUnitCircle(this.engine.rng).mult(spawnRadius);
+                const duck = new Duck(position, duckRadius, colors[colorIndex]);
                 duck.active = false;
             }
         }
     }
 
     fixedUpdate(dt) {
-        // Update dog's target position based on input
+        // Update dog's position based on input
         if (this.dog && (this.state === GameState.PREGAME || this.state === GameState.PLAYING)) {
             if (this.engine.isTouchDevice) {
-                // For touch devices, add the touch delta to the current target position
+                // For touch devices, add the touch delta to the current position
                 const sensitivity = 2.0;
                 const touchDelta = this.engine.touchDelta;
-                this.dog.target_pos = this.dog.target_pos.add(touchDelta.mult(sensitivity));
+                this.dog.pos = this.dog.pos.add(touchDelta.mult(sensitivity));
                 this.engine.touchDelta = new Vector(0, 0);
             } else {
                 // For mouse, directly set to world-space mouse position
-                this.dog.target_pos = new Vector(this.engine.worldMousePos[0], this.engine.worldMousePos[1]);
+                this.dog.pos = new Vector(this.engine.worldMousePos[0], this.engine.worldMousePos[1]);
             }
         }
 
@@ -291,8 +263,6 @@ class Game {
         
         this.pen = null;
         Duck.ducks = [];
-        
-        this.createPen();
         
         // Position dog at outer boundary
         const boundaryRadius = 128;

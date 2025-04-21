@@ -51,6 +51,13 @@ export function angleLerp(start, end, t) {
     return start + diff * t;
 }
 
+export function angleDiff(a, b) {
+    let diff = a - b;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    return diff;
+}
+
 export function isMobileDevice() {
     // Check if the device width is less than 800px (common mobile breakpoint)
     const isMobileWidth = window.innerWidth < 800;

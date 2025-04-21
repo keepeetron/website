@@ -28,17 +28,17 @@ export class Duck extends Actor {
             // Draw wing
             ctx.beginPath();
             ctx.strokeStyle = this.color;
-            ctx.lineWidth = 4;
+            ctx.lineWidth = 2;
             ctx.moveTo(0, 0);
-            ctx.lineTo(16, 0); // Wing length
+            ctx.lineTo(8, 0); // Wing length
             ctx.stroke();
             
             ctx.restore();
         }
     }
 
-    constructor(x, y, color) {
-        super(x, y, 10, color); // Default to yellow, but color will be changed later
+    constructor(pos, radius, color) {
+        super(pos, radius, color); // Default to yellow, but color will be changed later
         this.active = true;
         this.isSorted = false;
         this.closestOtherDuck = null;
@@ -110,17 +110,17 @@ export class Duck extends Actor {
     fixedUpdate(dt, game) {
         if (!this.active) return;
 
-        const centerForce = 1.8;
-        const damping = 5.0;
-        const separationForce = 7000.0;
+        const centerForce = 1.2;
+        const damping = 3.0;
+        const separationForce = 1500.0;
         const groupForce = 3.0;
-        const dogForce = 20000.0;
+        const dogForce = 2000.0;
 
         // Initialize total force
         let totalForce = new Vector(0, 0);
 
         // Center force (pull towards origin, matching Godot's -pos)
-        const center = new Vector(game.engine.canvas.width / 2, game.engine.canvas.height / 2);
+        const center = new Vector(0, 0);
         totalForce = totalForce.add(center.sub(this.pos).mult(centerForce));
 
         // Separation from closest duck
@@ -161,8 +161,7 @@ export class Duck extends Actor {
         // Apply accumulated force to velocity
         this.vel = this.vel.add(totalForce.mult(dt));
         
-        // Let Actor handle position update and default angle targets
-        super.fixedUpdate(dt);
+        this.pos = this.pos.add(this.vel.mult(dt));
         
         // For ducks, both body and head face velocity direction
         const velAngle = this.vel.angle();
@@ -192,11 +191,38 @@ export class Duck extends Actor {
     }
 
     draw(ctx, alpha) {
+        // the way the dog and duck are drawn has gotten more different, so there's less commonality happening in super.draw. duck body stretches as in the original manner, but the dog can move super fast so it could stretch much further and needs to be more carefully handled as to not look bad. 
+
+        ctx.save();
+
+        // move to position 
+        ctx.translate(this.pos.x, this.pos.y);
+
+        this.drawStretchedBody(ctx, alpha);
+
+        ctx.restore();
+
         // Draw the base actor (body and head)
-        super.draw(ctx, alpha);
+        // super.draw(ctx, alpha);
         
         // Draw wings
-        this.leftWing.draw(ctx, this.pos, this.angle);
-        this.rightWing.draw(ctx, this.pos, this.angle);
+        // this.leftWing.draw(ctx, this.pos, this.angle);
+        // this.rightWing.draw(ctx, this.pos, this.angle);
+    }
+
+    drawStretchedBody(ctx, alpha) {
+        ctx.save();
+        ctx.rotate(this.vel.angle()); // stretched body mimics motion blur so must be based on velocity angle
+        // Calculate velocity magnitude for stretch amount
+        const velMag = this.vel.mag();
+        const stretchFactor = 1.0 + velMag / 200;
+        
+        // Draw stretched circle for body
+        ctx.beginPath();
+        ctx.ellipse(0, 0, this.radius * stretchFactor, this.radius / stretchFactor, 0, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+
+        ctx.restore();
     }
 } 
