@@ -6,9 +6,26 @@
     <title>Duck Sorter</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" href="data:,">
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=YOUR-CLIENT-ID" crossorigin="anonymous"></script>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
+    <div class="game-container">
+        <div class="ad-container top-ad">
+            <!-- Top Ad -->
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="YOUR-CLIENT-ID"
+                 data-ad-slot="YOUR-AD-SLOT"
+                 data-ad-format="auto"
+                 data-full-width-responsive="true"></ins>
+        </div>
+        
+        <div class="game-wrapper">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+    </div>
+
     <!-- Engine scripts -->
     <script type="module" src="engine/vector.js"></script>
     <script type="module" src="engine/utils.js"></script>
@@ -16,11 +33,15 @@
     <script type="module" src="engine/engine.js"></script>
     
     <!-- Game scripts -->
-    <script type="module" src="game/actor.js"></script>
     <script type="module" src="game/dog.js"></script>
     <script type="module" src="game/duck.js"></script>
     <script type="module" src="game/pen.js"></script>
     <script type="module" src="game/boundary.js"></script>
     <script type="module" src="game/game.js"></script>
+    
+    <!-- Initialize AdSense -->
+    <script>
+        (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
 </body>
 </html> 

@@ -207,10 +207,8 @@ export class GameUI {
 
     drawPregameUI() {
         const ctx = this.game.engine.ctx;
-        var pos = new Vector(this.game.engine.canvas.width/2, 100);
+        var pos = new Vector(this.game.engine.canvas.width/2, 150);
         this.drawText('duck sorter', pos, 48, 'white', 'center');
-        pos.y += 80;
-        this.drawText('move the dog into the pen to start', pos, 20, 'white', 'center');
     }
 
     drawGameoverUI() {

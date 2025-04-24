@@ -1,36 +1,32 @@
-import { Actor } from './actor.js';
 import { Vector } from '../engine/vector.js';
 import { Dog } from './dog.js';
 import { angleLerp } from '../engine/utils.js';
 import { DebugDraw } from '../engine/debugDraw.js';
 
-export class Duck extends Actor {
+export class Duck {
     static ducks = [];
 
     static Wing = class {
         constructor(localPos) {
-            this.localPos = localPos; // Position relative to duck
+            this.localPos = localPos;
             this.angle = 0;
             this.targetAngle = 0;
-            this.color = '#000000'; // Default wing color
+            this.color = '#000000';
         }
 
         draw(ctx, duckPos, duckAngle) {
             ctx.save();
             
-            // Move to wing's global position
             const globalPos = duckPos.add(this.localPos.rotate(duckAngle));
             ctx.translate(globalPos.x, globalPos.y);
             
-            // Apply wing rotation (no need to subtract duckAngle since angle is already in global space)
             ctx.rotate(this.angle);
             
-            // Draw wing
             ctx.beginPath();
             ctx.strokeStyle = this.color;
             ctx.lineWidth = 2;
             ctx.moveTo(0, 0);
-            ctx.lineTo(8, 0); // Wing length
+            ctx.lineTo(8, 0);
             ctx.stroke();
             
             ctx.restore();
@@ -38,17 +34,30 @@ export class Duck extends Actor {
     }
 
     constructor(pos, radius, color) {
-        super(pos, radius, color); // Default to yellow, but color will be changed later
+        this.pos = pos;
+        this.prevPos = pos;
+        this.vel = new Vector(0, 0);
+        this.radius = radius;
+        this.angle = 0;
+        this.targetAngle = 0;
+        this.color = color;
         this.active = true;
         this.isSorted = false;
         this.closestOtherDuck = null;
         this.avgPosOfNearbyGroup = new Vector(0, 0);
         
-        // Customize head properties for duck
+        // Head properties
         this.headSize = new Vector(this.radius * 1.0, this.radius * 0.5);
         this.headOffset = this.radius * 0.8;
+        this.headAngle = 0;
+        this.headColor = 'black';
         
-        // Set beak properties - square and as wide as head
+        // Eye properties
+        this.eyeRadius = this.radius * 0.25;
+        this.eyeOffset = new Vector(this.headSize.x * -0.25, this.headSize.y * 0.5);
+        this.eyeColor = '#000000';
+        
+        // Mouth/nose properties
         this.mouthSize = new Vector(this.headSize.y, this.headSize.y);
         this.mouthColor = '#ffffff';
 
@@ -57,7 +66,6 @@ export class Duck extends Actor {
         this.leftWing = new Duck.Wing(new Vector(0, -wingOffset));
         this.rightWing = new Duck.Wing(new Vector(0, wingOffset));
         
-        // Set wing colors to match duck
         this.leftWing.color = this.color;
         this.rightWing.color = this.color;
         
@@ -110,11 +118,11 @@ export class Duck extends Actor {
     fixedUpdate(dt, game) {
         if (!this.active) return;
 
-        const centerForce = 1.2;
-        const damping = 3.0;
+        const centerForce = 2.0;
+        const damping = 4.0;
         const separationForce = 1500.0;
-        const groupForce = 3.0;
-        const dogForce = 2000.0;
+        const groupForce = 3.5;
+        const dogForce = 3000.0;
 
         // Initialize total force
         let totalForce = new Vector(0, 0);
@@ -186,8 +194,6 @@ export class Duck extends Actor {
         this.rightWing.targetAngle = rightWingPos.angleTo(behindPoint);
         this.rightWing.angle = angleLerp(this.rightWing.angle, this.rightWing.targetAngle, deltaTime * wingLerpSpeed);
         
-        // Let Actor handle visual interpolation
-        super.update(deltaTime);
     }
 
     draw(ctx, alpha) {
@@ -200,14 +206,12 @@ export class Duck extends Actor {
 
         this.drawStretchedBody(ctx, alpha);
 
-        ctx.restore();
-
-        // Draw the base actor (body and head)
-        // super.draw(ctx, alpha);
         
         // Draw wings
         // this.leftWing.draw(ctx, this.pos, this.angle);
         // this.rightWing.draw(ctx, this.pos, this.angle);
+        
+        ctx.restore();
     }
 
     drawStretchedBody(ctx, alpha) {
@@ -224,5 +228,18 @@ export class Duck extends Actor {
         ctx.fill();
 
         ctx.restore();
+    }
+
+    overlaps(other) {
+        const distance = Vector.dist(this.pos, other.pos);
+        return distance < (this.radius + other.radius);
+    }
+
+    distanceTo(other) {
+        return Vector.dist(this.pos, other.pos);
+    }
+
+    directionTo(other) {
+        return other.pos.sub(this.pos).normalize();
     }
 } 

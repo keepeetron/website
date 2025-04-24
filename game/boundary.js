@@ -16,7 +16,8 @@ export class Boundary {
     }
 
     constrainActor(actor) {
-        if (!actor.pos || !actor.vel) return;
+        // Check if object has required properties
+        if (!actor || !actor.pos || !actor.vel || actor.radius === undefined) return;
 
         // Calculate vector from center to actor
         const toActor = actor.pos;

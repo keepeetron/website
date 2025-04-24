@@ -64,12 +64,20 @@ export class Vector {
         return v1.sub(v2).mag();
     }
 
+    static dir(v1, v2) {
+        return v1.sub(v2).normalize();
+    }
+
     static dot(v1, v2) {
         return v1.x * v2.x + v1.y * v2.y;
     }
 
     static angle(v1, v2) {
         return Math.acos(Vector.dot(v1, v2) / (v1.mag() * v2.mag()));
+    }
+
+    static fromAngle(angle) {
+        return new Vector(Math.cos(angle), Math.sin(angle));
     }
 
     // Rotate vector by angle (in radians)

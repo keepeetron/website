@@ -1,6 +1,5 @@
 import { GameEngine } from '../engine/engine.js';
 import { Vector } from '../engine/vector.js';
-import { Actor } from './actor.js';
 import { Dog } from './dog.js';
 import { Duck } from './duck.js';
 import { Pen } from './pen.js';

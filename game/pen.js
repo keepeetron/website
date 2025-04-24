@@ -7,45 +7,24 @@ export class Pen {
 
     constructor(radius) {
         this.radius = radius;
-        this.color = '#ffffff'; // White color for the pen outline
+        this.color = 'hsl(0, 0%, 40%)';
     }
 
     draw(ctx, alpha) {
-        // Draw circle outline
         ctx.beginPath();
         ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-        ctx.strokeStyle = this.color;
-        ctx.lineWidth = Pen.thickness;
-        ctx.stroke();
+        ctx.fillStyle = this.color;
+        ctx.fill();
     }
 
     fixedUpdate(dt, game) {
-        // Check all dogs using the static list
         for (const dog of Dog.dogs) {
-            // Calculate vector from center to dog
             const toDog = dog.pos;
             const dist = toDog.mag();
-
-            // If dog is inside pen
             if (dist < this.radius + dog.radius) {
-
-                // Start the game if we're in pregame state
                 if (game.state === GameState.PREGAME) {
                     game.startGame();
                     return;
-                }
-
-                // Move dog outside pen
-                const normal = toDog.normalize();
-                dog.pos = normal.mult(this.radius + dog.radius);
-
-                // Calculate dot product to find velocity in direction of normal
-                const dot = Vector.dot(dog.vel, normal);
-                
-                // If dog is moving inward, reflect the velocity
-                if (dot < 0) {
-                    // Remove velocity in normal direction (towards pen center)
-                    dog.vel = dog.vel.sub(normal.mult(dot));
                 }
             }
         }

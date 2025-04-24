@@ -6,8 +6,8 @@ export class GameEngine {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
         
-        // Set canvas to fill viewport
-        this.canvas.style.position = 'fixed';
+        // Set canvas to fill its container
+        this.canvas.style.position = 'absolute';
         this.canvas.style.top = '0';
         this.canvas.style.left = '0';
         this.canvas.style.width = '100%';
@@ -170,8 +170,9 @@ export class GameEngine {
     }
 
     resizeCanvas() {
-        // Set canvas size to match display size
-        this.canvas.width = document.documentElement.clientWidth;
-        this.canvas.height = document.documentElement.clientHeight;
+        const gameWrapper = this.canvas.parentElement;
+        // Set canvas size to match its container
+        this.canvas.width = gameWrapper.clientWidth;
+        this.canvas.height = gameWrapper.clientHeight;
     }
 } 
