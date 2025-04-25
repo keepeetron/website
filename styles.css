@@ -32,10 +32,9 @@ body {
 }
 
 .ad-container {
-    background-color: green; /* Debug color */
+    background-color: green;
     min-width: 160px;
     visibility: visible !important;
-    display: block !important;
 }
 
 .side-ad {
@@ -44,6 +43,7 @@ body {
     height: 100vh;
     width: 160px;
     visibility: visible !important;
+    display: block;
 }
 
 .left-ad {
@@ -55,7 +55,7 @@ body {
 }
 
 .top-ad {
-    display: none; /* Hidden by default */
+    display: none;
 }
 
 #gameCanvas {
@@ -81,21 +81,21 @@ body {
         margin: 0;
         padding: 0;
         align-items: flex-start;
-        height: calc(100vh - 50px); /* Full height minus top ad */
+        height: calc(100vh - 50px);
     }
     
     .side-ad {
-        display: none; /* Hide side ads on mobile */
+        display: none !important;
     }
     
     .top-ad {
-        display: block; /* Show top ad on mobile */
+        display: block;
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 50px;
-        z-index: 1000; /* Ensure it stays on top */
+        z-index: 1000;
     }
     
     .game-area {
