@@ -1,4 +1,3 @@
-/* Reset and base styles */
 * {
     margin: 0;
     padding: 0;
@@ -6,196 +5,100 @@
 }
 
 body {
-    font-family: 'Arial', sans-serif;
-    line-height: 1.6;
-    color: #333;
     background-color: #1a1a1a;
-    margin: 0;
     min-height: 100vh;
-    overflow: hidden; /* Prevent scrolling */
-    touch-action: none; /* Prevent default touch behaviors */
-    -webkit-overflow-scrolling: none; /* Disable momentum scrolling on iOS */
+    overflow: hidden;
+    position: relative; /* For absolute positioning of side ads */
 }
 
-/* Header and Navigation */
-header {
-    background-color: #1a1a1a;
-    padding: 1rem 0;
-    position: fixed;
-    width: 100%;
-    top: 0;
-    z-index: 1000;
-}
-
-nav ul {
-    list-style: none;
+.layout-container {
     display: flex;
-    justify-content: center;
-    gap: 2rem;
-}
-
-nav a {
-    color: white;
-    text-decoration: none;
-    font-weight: bold;
-    transition: color 0.3s ease;
-}
-
-nav a:hover {
-    color: #9c9c9c;
-}
-
-/* Main content */
-main {
-    margin-top: 4rem;
-    padding: 2rem;
-}
-
-section {
-    padding: 4rem 0;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
-    text-align: center;
-}
-
-h1 {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    color: #383838;
-}
-
-h2 {
-    font-size: 2rem;
-    margin-bottom: 1rem;
-    color: #383838;
-}
-
-p {
-    max-width: 600px;
+    min-height: 100vh;
+    width: calc(100% - 320px); /* Full width minus side ads (160px each) */
     margin: 0 auto;
 }
 
-/* Game Container Layout */
-.game-container {
+.game-area {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
     width: 100%;
+    height: 100vh;
 }
 
 .ad-container {
-    width: 100%;
-    min-height: 90px; /* Minimum height for ads */
-    background-color: #1a1a1a;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    background-color: green; /* Debug color */
 }
 
-.game-wrapper {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    min-height: 0; /* Important for flex child */
-}
-
-/* Game Canvas */
-#gameCanvas {
-    position: absolute;
+.side-ad {
+    position: fixed;
     top: 0;
+    height: 100vh;
+    width: 160px;
+}
+
+.left-ad {
     left: 0;
+}
+
+.right-ad {
+    right: 0;
+}
+
+.top-ad {
+    display: none; /* Hidden by default */
+}
+
+#gameCanvas {
+    background-color: red;
+    display: block;
     width: 100%;
     height: 100%;
-    background-color: #2a2a2a;
+    aspect-ratio: 1/1;
+    object-fit: contain; /* Maintain aspect ratio while filling container */
 }
 
-canvas {
-    display: block;
-    background-color: #2a2a2a;
-    border: 2px solid #333;
-}
-
-/* Footer */
-footer {
-    background-color: #2c3e50;
-    color: white;
-    text-align: center;
-    padding: 1rem 0;
-    position: relative;
-    bottom: 0;
-    width: 100%;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-    nav ul {
+/* Mobile layout */
+@media (max-width: 800px) {
+    body {
+        display: flex;
         flex-direction: column;
-        align-items: center;
-        gap: 1rem;
-    }
-    
-    h1 {
-        font-size: 2rem;
-    }
-    
-    h2 {
-        font-size: 1.5rem;
+        height: 100vh;
     }
 
-    .ad-container {
-        min-height: 50px; /* Smaller ads on mobile */
+    .layout-container {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        align-items: flex-start;
+        height: calc(100vh - 50px); /* Full height minus top ad */
     }
     
-    .game-wrapper {
-        aspect-ratio: 1/1;
-        max-width: 100%;
-        max-height: calc(100vh - 50px); /* Account for top ad only */
+    .side-ad {
+        display: none; /* Hide side ads on mobile */
+    }
+    
+    .top-ad {
+        display: block; /* Show top ad on mobile */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 50px;
+        z-index: 1000; /* Ensure it stays on top */
+    }
+    
+    .game-area {
+        height: 100%;
+        margin-top: 50px; /* Space for fixed top ad */
     }
     
     #gameCanvas {
         width: 100%;
         height: 100%;
+        aspect-ratio: 1/1;
+        object-fit: contain; /* Maintain aspect ratio while filling container */
     }
 }
-
-/* Mobile-specific styles */
-@media (max-width: 768px) {
-    body {
-        align-items: flex-start;
-        min-height: auto;
-        height: 100vh; /* Ensure body takes full viewport height */
-        overflow: hidden; /* Prevent scrolling */
-        position: fixed; /* Prevent scroll on iOS */
-    }
-
-    html {
-        overflow: hidden; /* Prevent scrolling on the html element */
-        height: 100%; /* Ensure html takes full viewport height */
-    }
-
-    main {
-        margin-top: 0;
-        padding: 0;
-        width: 100%;
-    }
-
-    section {
-        padding: 0;
-        min-height: auto;
-    }
-
-    #gameCanvas {
-        width: 100%;
-        height: auto;
-        aspect-ratio: 1/1;
-    }
-
-    canvas {
-        border: none;
-    }
-} 
