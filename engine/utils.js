@@ -59,8 +59,8 @@ export function angleDiff(a, b) {
 }
 
 export function isMobileDevice() {
-    // Check if the device width is less than 800px (common mobile breakpoint)
-    const isMobileWidth = window.innerWidth < 800;
+    // Check if the device width is less than 900px
+    const isMobileWidth = window.innerWidth < 900;
     
     // Check for touch capability
     const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
